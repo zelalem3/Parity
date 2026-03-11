@@ -1,42 +1,57 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { socket } from './socket';
 
-export function DocumentEditor() {
+export function DocumentEditor({ documentId }) {
   const [content, setContent] = useState('');
-  const editorRef = useRef(null);
-  const documentId = 'default-doc'; // In a real app, this could be dynamic
+  const textareaRef = useRef(null);
+  const joinedDocumentRef = useRef(null);
 
-  // Join the document room and set up listeners
   useEffect(() => {
+    if (!documentId) return;
+
+    // If the user switches docs, leave the old room first.
+    if (joinedDocumentRef.current && joinedDocumentRef.current !== documentId) {
+      socket.emit('leave-document', joinedDocumentRef.current);
+    }
+
+    joinedDocumentRef.current = documentId;
     socket.emit('join-document', documentId);
 
-    function onDocumentUpdate(newContent) {
+    const handleUpdate = (newContent) => {
+      // Save cursor position before update
+      const selectionStart = textareaRef.current?.selectionStart;
+      const selectionEnd = textareaRef.current?.selectionEnd;
+
       setContent(newContent);
-    }
-    socket.on('document-update', onDocumentUpdate);
-    return () => {
-      socket.off('document-update', onDocumentUpdate);
+
+      // Restore cursor position after React finishes rendering
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.setSelectionRange(selectionStart, selectionEnd);
+        }
+      });
     };
+
+    socket.on('document-update', handleUpdate);
+
+    return () => socket.off('document-update', handleUpdate);
   }, [documentId]);
 
-  // Send local changes to server
-  function handleChange(e) {
-    const newValue = e.target.value;
-    setContent(newValue);
-    socket.emit('document-update', newValue);
-  }
+  const handleChange = (event) => {
+    const newContent = event.target.value;
+    setContent(newContent);
+    
+    // Send both the content AND the documentId
+    socket.emit('document-update', { documentId, newContent });
+  };
 
   return (
-    <div>
-      <h2>Collaborative Document Editor</h2>
-      <textarea
-        ref={editorRef}
-        value={content}
-        onChange={handleChange}
-        rows={15}
-        cols={80}
-        style={{ fontFamily: 'monospace', fontSize: '1rem', width: '100%' }}
-      />
-    </div>
+    <textarea
+      ref={textareaRef}
+      value={content}
+      onChange={handleChange}
+      placeholder="Start collaborating..."
+      style={{ width: '100%', height: '200px' }}
+    />
   );
 }

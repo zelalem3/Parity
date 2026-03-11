@@ -4,29 +4,44 @@ const { Server } = require("socket.io");
 const httpServer = createServer();
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:5173", // Allowed origins
-        methods: ["GET", "POST"], // Allowed HTTP methods
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
     },
 });
+
+// A simple in-memory store to keep track of document state
+// In a real app, you'd use a Database (MongoDB/PostgreSQL)
+const documentStore = {};
 
 io.on("connection", (socket) => {
     console.log(`User Connected: ${socket.id}`);
 
     socket.on("join-document", (documentId) => {
         socket.join(documentId);
-        socket.documentId = documentId; // Track which document this socket is editing
+        
+        // 1. Send the EXISTING content to the user who just joined
+        const existingContent = documentStore[documentId] || "";
+        socket.emit("document-update", existingContent);
+
         console.log(`User ${socket.id} joined document: ${documentId}`);
-        // Notify others in the room that a new user has joined
-        socket.to(documentId).emit("user-joined", socket.id);
     });
 
-    // Listen for document updates and broadcast to others in the same room
-    socket.on("document-update", (newContent) => {
-        const documentId = socket.documentId;
-        if (documentId) {
-            // Broadcast to all other clients in the same document room
-            socket.to(documentId).emit("document-update", newContent);
-        }
+    socket.on("leave-document", (documentId) => {
+        socket.leave(documentId);
+        console.log(`User ${socket.id} left document: ${documentId}`);
+    });
+
+    // We destructure the object sent from the client
+    socket.on("document-update", ({ documentId, newContent }) => {
+        // 2. Update our "database"
+        documentStore[documentId] = newContent;
+
+        // 3. Broadcast to everyone ELSE in that room
+        socket.to(documentId).emit("document-update", newContent);
+    });
+
+    socket.on("disconnect", () => {
+        console.log("User Disconnected", socket.id);
     });
 });
 

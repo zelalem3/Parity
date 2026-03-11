@@ -1,5 +1,6 @@
+// ConnectionManager.js
 import React from 'react';
-import { socket } from '../socket';
+import { socket } from './socket';
 
 export function ConnectionManager() {
   function connect() {
@@ -12,8 +13,8 @@ export function ConnectionManager() {
 
   return (
     <>
-      <button onClick={ connect }>Connect</button>
-      <button onClick={ disconnect }>Disconnect</button>
+      <button onClick={connect}>Connect</button>
+      <button onClick={disconnect}>Disconnect</button>
     </>
   );
 }
