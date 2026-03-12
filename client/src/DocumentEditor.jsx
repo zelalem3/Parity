@@ -16,29 +16,50 @@ useEffect(() => {
   }
 }, [content]);
 
-const editorStyle = {
-  width: '100%',
-  height: '400px',
-  fontSize: '18px',
-  border: 'none',
-  outline: 'none',
+
+
+// Add this inside your DocumentEditor component
+const applyFormatting = (prefix, suffix) => {
+  const el = textareaRef.current;
+  if (!el) return;
+
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const fullText = el.value;
+  const selectedText = fullText.substring(start, end);
+
+  // Construct the new content
+  const newContent = 
+    fullText.substring(0, start) + 
+    prefix + selectedText + suffix + 
+    fullText.substring(end);
+
+  // Update state and notify socket
+  setContent(newContent);
+  socket.emit('document-update', { documentId, newContent });
+
+  // Refocus the textarea
+  el.focus();
   
-  // FIXED COLORS
- // use camelCase for background-color
+  // Optional: Reset cursor position after React render
+  setTimeout(() => {
+    el.setSelectionRange(start + prefix.length, end + prefix.length);
+  }, 0);
 };
-// Style the textarea to remove the border and look like a page
 const style = {
   border: 'none',
   outline: 'none',
-  width: '100%',
+  width: '100%', // This fills the 'paper'
   resize: 'none',
   fontSize: '18px',
   lineHeight: '1.6',
-  overflow: 'hidden', // Hide scrollbar as it grows
+  overflow: 'hidden',
   background: 'transparent',
-   color: 'black',          // or '#000000'
-  backgroundColor: 'white' 
-   // Make it blend with the paper background
+  color: 'black',
+  backgroundColor: 'white',
+  padding: '0',
+  margin: '0',
+  display: 'block'
 };
 
   useEffect(() => {
@@ -83,33 +104,44 @@ const style = {
     socket.emit('document-update', { documentId, newContent });
   };
 
- return (
-  <div className="editor-page" style={{ background: '#f0f2f5', padding: '50px' }}>
+
+
+return (
+  <div className="editor-page" style={{ 
+    background: '#f0f2f5', 
+    padding: '20px 0', // Reduced top/bottom padding
+    minHeight: '100vh', 
+    width: '100vw'      // Force full viewport width
+  }}>
     <div className="toolbar" style={{ 
-      background: 'white', 
-      padding: '10px', 
-      borderRadius: '8px 8px 0 0', 
-      borderBottom: '1px solid #ddd',
-      maxWidth: '800px',
-      margin: '0 auto'
-    }}>
-      <button><b>B</b></button> <button><i>I</i></button> <button><u>U</u></button>
-    </div>
+  background: 'white', 
+  padding: '10px 20px', 
+  borderBottom: '1px solid #ddd',
+  width: '100%',
+  boxSizing: 'border-box',
+  display: 'flex',
+  gap: '10px'
+}}>
+  <button onClick={() => applyFormatting('**', '**')}><b>B</b></button>
+  <button onClick={() => applyFormatting('_', '_')}><i>I</i></button>
+  <button onClick={() => applyFormatting('<u>', '</u>')}><u>U</u></button>
+</div>
     
     <div className="paper" style={{
       background: 'white',
-      maxWidth: '800px',
-      minHeight: '1000px',
+      width: '100%',      // Now fills the screen
+      minHeight: '100vh',
       margin: '0 auto',
-      padding: '60px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+      padding: '60px',    // Standard document margins
+      boxSizing: 'border-box', // Crucial: includes padding in width calculation
+      boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
     }}>
       <textarea 
         ref={textareaRef}
         value={content}
         onChange={handleChange}
         style={style}
-        placeholder="Type your content here..."
+        placeholder="Start typing your masterpiece..."
       />
     </div>
   </div>
