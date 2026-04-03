@@ -21,8 +21,9 @@ const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
     // 3. ADD YOUR VERCEL URL HERE once you have it
-    origin: ["http://localhost:5173", "https://parity-ruby.vercel.app/"],
+    origin: ["http://localhost:5173", "https://parity-ruby.vercel.app"],
     methods: ["GET", "POST"],
+    credentials: true
   },
 });
 
