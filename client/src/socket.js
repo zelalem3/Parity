@@ -2,7 +2,7 @@
 import { io } from "socket.io-client";
 
 // Replace with your server URL
-const SERVER_URL = import.meta.env.VITE_API_URL;  // Adjust this to match your server's URL
+const SERVER_URL = "https://parity-yk5h.onrender.com";  // Adjust this to match your server's URL
 
 // Create a socket instance
 export const socket = io(SERVER_URL, {
